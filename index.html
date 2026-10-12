@@ -64,7 +64,7 @@ select{direction:rtl}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,collection,doc,getDoc,getDocs,setDoc,deleteDoc,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,deleteDoc,serverTimestamp,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={
   apiKey:"AIzaSyDTb-31wETVCMyQ5at8hLrolbQpf17o80w",
@@ -93,8 +93,11 @@ const msg=e=>ERR[e.code]||"حدث خطأ. أعد المحاولة.";
 let S={user:null,admin:false,tab:"home",mode:"login"};
 
 onAuthStateChanged(auth,async u=>{
-  S.user=u;S.admin=false;
-  if(u){try{S.admin=(await getDoc(doc(db,"admins",u.uid))).exists()}catch{}}
+  S.user=u;S.admin=false;S.exp=0;
+  if(u){
+    try{S.admin=(await getDoc(doc(db,"admins",u.uid))).exists()}catch{}
+    try{const d=await getDoc(doc(db,"subscriptions",u.uid));if(d.exists()){const v=d.data();S.exp=v.startedAt.toMillis()+v.days*864e5}}catch{}
+  }
   render();
 });
 
@@ -144,6 +147,7 @@ function bindAuth(){
   };
 }
 
+const active=()=>S.admin||S.exp>Date.now();
 const GRADES=[
  {id:"primary6",title:"الصف السادس الابتدائي",stage:"المرحلة الابتدائية",order:1},
  {id:"middle3",title:"الصف الثالث متوسط",stage:"المرحلة المتوسطة",order:2},
@@ -179,13 +183,42 @@ async function gradeView(g){
     const units=rows(u),ls=rows(l),el=$("#l");el.className="";
     if(!ls.length){el.innerHTML=`<p class="muted">لا توجد دروس لهذا الصف بعد. ستظهر هنا عند إضافتها.</p>`;return}
     const known=new Set(units.map(x=>x.id));
+    const uo={};units.forEach(x=>uo[x.id]=x.order||0);
+    const free=[...ls].sort((a,b)=>(uo[a.unitId]||0)-(uo[b.unitId]||0)||(a.order||0)-(b.order||0))[0].id;
     const groups=[...units.map(x=>({t:x.title,id:x.id})),...(ls.some(x=>!known.has(x.unitId))?[{t:"دروس أخرى",id:null}]:[])];
     el.innerHTML=groups.map(gr=>{
       const items=ls.filter(x=>gr.id?x.unitId===gr.id:!known.has(x.unitId));
-      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${esc(x.title)}</button>`).join(""):"";
+      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${x.id===free||active()?"":"🔒 "}${esc(x.title)}</button>`).join(""):"";
     }).join("");
-    el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>lessonView(g,ls.find(x=>x.id===b.dataset.l)));
+    el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{
+      const id=b.dataset.l;
+      if(id===free||active())lessonView(g,ls.find(x=>x.id===id));else subView(g);
+    });
   }catch(e){$("#l").innerHTML=`<p class="err">${msg(e)}</p>`}
+}
+
+function subView(g){
+  $("#m").innerHTML=`<button class="back" id="bk">‹ رجوع</button><h2>الاشتراك</h2>
+  <p class="muted" style="margin-bottom:12px">الدرس الأول من كل صف مجاني. لفتح بقية الدروس أدخل كود التفعيل الذي يعطيك إياه الأستاذ.</p>
+  <label for="cd">كود التفعيل</label><input id="cd" autocapitalize="characters" autocomplete="off">
+  <p class="err" id="ce" role="alert"></p><button class="btn gold" id="ac">تفعيل</button>`;
+  const back=()=>g?gradeView(g):(S.tab="me",render());
+  $("#bk").onclick=back;
+  $("#ac").onclick=async()=>{
+    const c=$("#cd").value.trim().toUpperCase(),b=$("#ac");
+    if(!c){$("#ce").textContent="اكتب الكود.";return}
+    b.disabled=true;$("#ce").textContent="";
+    try{
+      const r=doc(db,"codes",c),d=await getDoc(r);
+      if(!d.exists()||d.data().used){$("#ce").textContent="الكود غير صحيح أو مستخدم.";b.disabled=false;return}
+      const days=d.data().days,sr=doc(db,"subscriptions",S.user.uid);
+      await updateDoc(r,{used:true,usedBy:S.user.uid});
+      await setDoc(sr,{code:c,days,startedAt:serverTimestamp()});
+      const v=(await getDoc(sr)).data();
+      S.exp=v.startedAt.toMillis()+v.days*864e5;
+      alert("تم تفعيل الاشتراك");back();
+    }catch(e){$("#ce").textContent=msg(e);b.disabled=false}
+  };
 }
 
 function lessonView(g,l){
@@ -209,8 +242,10 @@ function bank(){
 function me(){
   const u=S.user;
   $("#m").innerHTML=`<h2>حسابي</h2>
-   <div class="card" style="border-inline-start-color:var(--vio2)"><b>${esc(u.displayName||"طالب")}</b><span dir="ltr">${esc(u.email)}</span>${S.admin?`<span>مشرف</span>`:""}</div>
+   <div class="card" style="border-inline-start-color:var(--vio2)"><b>${esc(u.displayName||"طالب")}</b><span dir="ltr">${esc(u.email)}</span>${S.admin?`<span>مشرف</span>`:`<span>${active()?"اشتراك فعّال حتى "+new Date(S.exp).toLocaleDateString("ar"):"بدون اشتراك"}</span>`}</div>
+   ${S.admin?"":`<button class="btn gold" id="rd" style="margin-bottom:10px">تفعيل كود اشتراك</button>`}
    <button class="btn" id="out">تسجيل الخروج</button>`;
+  const rd=$("#rd");if(rd)rd.onclick=()=>subView(null);
   $("#out").onclick=()=>signOut(auth);
 }
 async function adm(){
@@ -225,6 +260,9 @@ async function adm(){
    <textarea id="lc" placeholder="شرح الدرس"></textarea>
    <textarea id="lg" class="code" placeholder="كود اللعبة أو الاختبار (ملف HTML كامل) - اختياري"></textarea>
    <button class="btn gold" id="ls">إضافة الدرس</button></div>
+  <div class="box"><b>أكواد التفعيل</b>
+   <label for="cdays">مدة الاشتراك</label><select id="cdays"><option value="30">30 يوماً</option><option value="90">90 يوماً</option><option value="365">سنة</option></select>
+   <button class="btn gold" id="cg">إنشاء كود جديد</button><div id="cl2" class="muted" style="margin-top:10px"></div></div>
   <p class="err" id="ae" role="alert"></p><div id="al" class="muted">جارٍ التحميل…</div>`;
   const gid=()=>$("#ag").value, err=e=>{$("#ae").textContent=msg(e)};
   async function load(){
@@ -242,6 +280,19 @@ async function adm(){
     }catch(e){$("#al").innerHTML=`<p class="err">${msg(e)}</p>`}
   }
   $("#ag").onchange=load;
+  async function lc(){
+    try{
+      const s=await getDocs(collection(db,"codes"));
+      const c=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.used).sort((a,b)=>b.createdAt-a.createdAt).slice(0,15);
+      $("#cl2").innerHTML=c.length?c.map(x=>`<div class="row"><span dir="ltr">${esc(x.id)}</span><span>${x.days} يوم</span></div>`).join(""):"لا توجد أكواد غير مستخدمة.";
+    }catch(e){$("#cl2").textContent=msg(e)}
+  }
+  $("#cg").onclick=async()=>{
+    const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789",r=crypto.getRandomValues(new Uint8Array(8));
+    const c=[...r].map(n=>A[n%A.length]).join("");
+    try{await setDoc(doc(db,"codes",c),{days:+$("#cdays").value,used:false,createdAt:Date.now()});lc()}catch(e){err(e)}
+  };
+  lc();
   $("#us").onclick=async()=>{
     const t=$("#un").value.trim();if(!t){$("#ae").textContent="اكتب عنوان الوحدة.";return}
     $("#ae").textContent="";

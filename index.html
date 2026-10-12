@@ -39,7 +39,7 @@ h2{font-size:20px;margin-bottom:14px}
 .tabs button{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);font-weight:700}
 .tabs .on{background:var(--vio);color:#fff;border-color:var(--vio)}
 label{display:block;font-size:14px;font-weight:700;margin:12px 0 4px}
-input{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;direction:ltr;text-align:right}
+input,select,textarea{width:100%;margin-bottom:8px;font-size:15px;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;direction:ltr;text-align:right}
 input.ar{direction:rtl}
 nav{position:fixed;bottom:0;inset-inline:0;display:flex;background:#fff;border-top:1.5px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
 nav button{flex:1;padding:12px 4px;font-size:14px;color:var(--mut);font-weight:500}
@@ -47,6 +47,16 @@ nav .on{color:var(--vio);font-weight:800;box-shadow:inset 0 3px 0 var(--gold)}
 ul.soon{list-style:none;padding:0}
 ul.soon li{padding:10px 14px;background:#fff;border:1px dashed var(--line);border-radius:10px;margin-bottom:8px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.box{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;margin:14px 0}
+textarea{min-height:110px;direction:rtl}
+textarea.code{direction:ltr;min-height:140px;font-family:monospace;font-size:13px}
+select{direction:rtl}
+.row{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px}
+.row span{flex:1}
+.row button{color:#B3261E;font-weight:700}
+.ov{position:fixed;inset:0;z-index:9;background:#fff;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.ov iframe{flex:1;border:0;width:100%}
+.ov .btn{border-radius:0}
 </style>
 </head>
 <body>
@@ -54,7 +64,7 @@ ul.soon li{padding:10px 14px;background:#fff;border:1px dashed var(--line);borde
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,collection,doc,getDoc,getDocs,setDoc,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,deleteDoc,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={
   apiKey:"AIzaSyDTb-31wETVCMyQ5at8hLrolbQpf17o80w",
@@ -75,6 +85,7 @@ const ERR={
  "auth/invalid-email":"صيغة البريد غير صحيحة.",
  "auth/network-request-failed":"لا يوجد اتصال بالإنترنت.",
  "auth/too-many-requests":"محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.",
+ "auth/api-key-not-valid.-please-pass-a-valid-api-key.":"مفتاح Firebase غير صحيح. تحقق من الإعدادات.",
  "permission-denied":"لا تملك صلاحية لهذا الإجراء."
 };
 const msg=e=>ERR[e.code]||"حدث خطأ. أعد المحاولة.";
@@ -97,10 +108,11 @@ function render(){
   <nav>
    <button data-t="home" class="${S.tab==="home"?"on":""}">الرئيسية</button>
    <button data-t="bank" class="${S.tab==="bank"?"on":""}">بنك التلب</button>
+   ${S.admin?`<button data-t="adm" class="${S.tab==="adm"?"on":""}">المشرف</button>`:""}
    <button data-t="me" class="${S.tab==="me"?"on":""}">حسابي</button>
   </nav>`;
   document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
-  ({home,bank,me})[S.tab]();
+  ({home,bank,me,adm})[S.tab]();
 }
 
 function authView(){
@@ -177,8 +189,16 @@ async function gradeView(g){
 }
 
 function lessonView(g,l){
-  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2><div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div>`;
+  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>${l.gameHtml?`<button class="btn gold" id="pg" style="margin-bottom:14px">ابدأ اللعبة / الاختبار</button>`:""}<div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div>`;
   $("#bk").onclick=()=>gradeView(g);
+  const pg=$("#pg");
+  if(pg)pg.onclick=()=>{
+    const o=document.createElement("div");o.className="ov";
+    o.innerHTML=`<button class="btn" id="cl">إغلاق</button><iframe sandbox="allow-scripts" title="اللعبة"></iframe>`;
+    document.body.appendChild(o);
+    o.querySelector("iframe").srcdoc=l.gameHtml;
+    o.querySelector("#cl").onclick=()=>o.remove();
+  };
 }
 
 function bank(){
@@ -192,6 +212,51 @@ function me(){
    <div class="card" style="border-inline-start-color:var(--vio2)"><b>${esc(u.displayName||"طالب")}</b><span dir="ltr">${esc(u.email)}</span>${S.admin?`<span>مشرف</span>`:""}</div>
    <button class="btn" id="out">تسجيل الخروج</button>`;
   $("#out").onclick=()=>signOut(auth);
+}
+async function adm(){
+  $("#m").innerHTML=`<h2>مركز المشرف</h2>
+  <label for="ag">الصف</label><select id="ag">${GRADES.map(x=>`<option value="${x.id}">${x.title}</option>`).join("")}</select>
+  <div class="box"><b>وحدة جديدة</b>
+   <input id="un" class="ar" placeholder="عنوان الوحدة"><input id="uo" type="number" value="1" aria-label="الترتيب">
+   <button class="btn" id="us">إضافة الوحدة</button></div>
+  <div class="box"><b>درس جديد</b>
+   <label for="au">الوحدة</label><select id="au"></select>
+   <input id="lt" class="ar" placeholder="عنوان الدرس"><input id="lo" type="number" value="1" aria-label="الترتيب">
+   <textarea id="lc" placeholder="شرح الدرس"></textarea>
+   <textarea id="lg" class="code" placeholder="كود اللعبة أو الاختبار (ملف HTML كامل) - اختياري"></textarea>
+   <button class="btn gold" id="ls">إضافة الدرس</button></div>
+  <p class="err" id="ae" role="alert"></p><div id="al" class="muted">جارٍ التحميل…</div>`;
+  const gid=()=>$("#ag").value, err=e=>{$("#ae").textContent=msg(e)};
+  async function load(){
+    try{
+      const [u,l]=await Promise.all([getDocs(query(collection(db,"units"),where("gradeId","==",gid()))),getDocs(query(collection(db,"lessons"),where("gradeId","==",gid())))]);
+      const us=rows(u),ls=rows(l);
+      $("#au").innerHTML=us.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join("");
+      $("#al").className="";
+      $("#al").innerHTML=us.map(x=>`<div class="unit">${esc(x.title)} <button data-d="units/${esc(x.id)}" style="color:#B3261E">حذف</button></div>`+ls.filter(y=>y.unitId===x.id).map(y=>`<div class="row"><span>${esc(y.title)}${y.gameHtml?" 🎮":""}</span><button data-d="lessons/${esc(y.id)}">حذف</button></div>`).join("")).join("")||`<p class="muted">لا توجد وحدات لهذا الصف بعد.</p>`;
+      $("#al").querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{
+        if(!confirm("هل تريد الحذف؟"))return;
+        const [c,i]=b.dataset.d.split("/");
+        try{await deleteDoc(doc(db,c,i));load()}catch(e){err(e)}
+      });
+    }catch(e){$("#al").innerHTML=`<p class="err">${msg(e)}</p>`}
+  }
+  $("#ag").onchange=load;
+  $("#us").onclick=async()=>{
+    const t=$("#un").value.trim();if(!t){$("#ae").textContent="اكتب عنوان الوحدة.";return}
+    $("#ae").textContent="";
+    try{await setDoc(doc(collection(db,"units")),{gradeId:gid(),title:t,order:+$("#uo").value||0});$("#un").value="";load()}catch(e){err(e)}
+  };
+  $("#ls").onclick=async()=>{
+    const t=$("#lt").value.trim(),u=$("#au").value;
+    if(!t||!u){$("#ae").textContent="اختر الوحدة واكتب عنوان الدرس.";return}
+    $("#ae").textContent="";
+    try{
+      await setDoc(doc(collection(db,"lessons")),{gradeId:gid(),unitId:u,title:t,order:+$("#lo").value||0,content:$("#lc").value,gameHtml:$("#lg").value.trim()});
+      $("#lt").value=$("#lc").value=$("#lg").value="";load();
+    }catch(e){err(e)}
+  };
+  load();
 }
 </script>
 </body>

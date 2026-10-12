@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3B2478">
+<title>التلب جغرافيا</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1E1536;--vio:#3B2478;--vio2:#5B3FA0;--gold:#D9A62B;--paper:#FBF8F1;--line:#E4DCEE;--mut:#6E6489}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:Tajawal,system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;font-size:16px;padding-top:env(safe-area-inset-top,0)}
+button,input{font:inherit}
+button{cursor:pointer;border:0;background:none;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.hd{position:relative;background:var(--vio);color:#fff;padding:22px 20px 26px;overflow:hidden}
+.hd svg{position:absolute;inset:0;width:100%;height:100%;opacity:.3}
+.hd h1{position:relative;font-size:26px;font-weight:800;letter-spacing:0}
+.hd p{position:relative;color:#E9DDFB;font-size:14px}
+.hd .dot{color:var(--gold)}
+main{padding:20px 18px 110px;max-width:640px;margin:auto}
+h2{font-size:20px;margin-bottom:14px}
+.muted{color:var(--mut)}
+.err{color:#B3261E;font-size:14px;margin:8px 0}
+.card{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:right;background:#fff;border:1.5px solid var(--line);border-inline-start:6px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card b{font-size:18px}
+.card span{color:var(--mut);font-size:14px}
+.card:active{background:#F4EEFB}
+.btn{background:var(--vio);color:#fff;border-radius:12px;padding:12px 20px;font-weight:700;width:100%}
+.btn.gold{background:var(--gold);color:var(--ink)}
+.btn:disabled{opacity:.6}
+.back{color:var(--vio2);font-weight:700;margin-bottom:12px;padding:6px 0}
+.unit{margin:18px 0 8px;font-weight:800;color:var(--vio)}
+.lesson{width:100%;text-align:right;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.body{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;line-height:1.95}
+.auth{max-width:420px;margin:auto;padding:22px 18px}
+.tabs{display:flex;gap:8px;margin:6px 0 16px}
+.tabs button{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);font-weight:700}
+.tabs .on{background:var(--vio);color:#fff;border-color:var(--vio)}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 4px}
+input{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;direction:ltr;text-align:right}
+input.ar{direction:rtl}
+nav{position:fixed;bottom:0;inset-inline:0;display:flex;background:#fff;border-top:1.5px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;padding:12px 4px;font-size:14px;color:var(--mut);font-weight:500}
+nav .on{color:var(--vio);font-weight:800;box-shadow:inset 0 3px 0 var(--gold)}
+ul.soon{list-style:none;padding:0}
+ul.soon li{padding:10px 14px;background:#fff;border:1px dashed var(--line);border-radius:10px;margin-bottom:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const cfg={
+  apiKey:"AIzaSyDTb-31wETVCMyQ5at8hLrolbQpf17o80w",
+  authDomain:"altlb-782c8.firebaseapp.com",
+  projectId:"altlb-782c8",
+  storageBucket:"altlb-782c8.firebasestorage.app",
+  messagingSenderId:"1080271848212",
+  appId:"1:1080271848212:web:8c73ca10cef2d618847801"
+};
+const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);
+
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ERR={
+ "auth/invalid-credential":"البريد أو كلمة السر غير صحيحة.",
+ "auth/email-already-in-use":"هذا البريد مسجّل. سجّل الدخول بدلاً من إنشاء حساب.",
+ "auth/weak-password":"كلمة السر قصيرة. استخدم 6 أحرف على الأقل.",
+ "auth/invalid-email":"صيغة البريد غير صحيحة.",
+ "auth/network-request-failed":"لا يوجد اتصال بالإنترنت.",
+ "auth/too-many-requests":"محاولات كثيرة. انتظر قليلاً ثم أعد المحاولة.",
+ "permission-denied":"لا تملك صلاحية لهذا الإجراء."
+};
+const msg=e=>ERR[e.code]||"حدث خطأ. أعد المحاولة.";
+
+let S={user:null,admin:false,tab:"home",mode:"login"};
+
+onAuthStateChanged(auth,async u=>{
+  S.user=u;S.admin=false;
+  if(u){try{S.admin=(await getDoc(doc(db,"admins",u.uid))).exists()}catch{}}
+  render();
+});
+
+const contour=`<svg viewBox="0 0 400 120" preserveAspectRatio="xMidYMid slice" aria-hidden="true" fill="none" stroke="#D9A62B" stroke-width="1.2"><ellipse cx="80" cy="70" rx="60" ry="26"/><ellipse cx="80" cy="70" rx="42" ry="17"/><ellipse cx="80" cy="70" rx="24" ry="9"/><ellipse cx="320" cy="40" rx="90" ry="40"/><ellipse cx="320" cy="40" rx="64" ry="28"/><ellipse cx="320" cy="40" rx="38" ry="17"/></svg>`;
+const header=sub=>`<header class="hd">${contour}<h1>التلب جغرافيا<span class="dot">.</span></h1><p>${esc(sub)}</p></header>`;
+
+function render(){
+  const a=$("#app");
+  if(!S.user){a.innerHTML=header("سجّل دخولك لتبدأ")+authView();bindAuth();return}
+  a.innerHTML=header("جغرافيا المنهج السوداني")+`<main id="m"></main>
+  <nav>
+   <button data-t="home" class="${S.tab==="home"?"on":""}">الرئيسية</button>
+   <button data-t="bank" class="${S.tab==="bank"?"on":""}">بنك التلب</button>
+   <button data-t="me" class="${S.tab==="me"?"on":""}">حسابي</button>
+  </nav>`;
+  document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
+  ({home,bank,me})[S.tab]();
+}
+
+function authView(){
+  const reg=S.mode==="reg";
+  return `<div class="auth">
+   <div class="tabs"><button id="t1" class="${reg?"":"on"}">تسجيل الدخول</button><button id="t2" class="${reg?"on":""}">حساب جديد</button></div>
+   ${reg?`<label for="nm">الاسم</label><input id="nm" class="ar" autocomplete="name">`:""}
+   <label for="em">البريد الإلكتروني</label><input id="em" type="email" autocomplete="email">
+   <label for="pw">كلمة السر</label><input id="pw" type="password" autocomplete="${reg?"new-password":"current-password"}">
+   <p class="err" id="er" role="alert"></p>
+   <button class="btn" id="go">${reg?"إنشاء الحساب":"دخول"}</button>
+  </div>`;
+}
+function bindAuth(){
+  $("#t1").onclick=()=>{S.mode="login";render()};
+  $("#t2").onclick=()=>{S.mode="reg";render()};
+  $("#go").onclick=async()=>{
+    const em=$("#em").value.trim(),pw=$("#pw").value,b=$("#go");
+    if(!em||!pw){$("#er").textContent="أدخل البريد وكلمة السر.";return}
+    b.disabled=true;$("#er").textContent="";
+    try{
+      if(S.mode==="reg"){
+        const nm=$("#nm").value.trim();
+        const c=await createUserWithEmailAndPassword(auth,em,pw);
+        if(nm)await updateProfile(c.user,{displayName:nm});
+        await setDoc(doc(db,"users",c.user.uid),{name:nm,email:em,createdAt:Date.now()});
+      }else await signInWithEmailAndPassword(auth,em,pw);
+    }catch(e){$("#er").textContent=msg(e);b.disabled=false}
+  };
+}
+
+const GRADES=[
+ {id:"primary6",title:"الصف السادس الابتدائي",stage:"المرحلة الابتدائية",order:1},
+ {id:"middle3",title:"الصف الثالث متوسط",stage:"المرحلة المتوسطة",order:2},
+ {id:"secondary3",title:"الصف الثالث ثانوي",stage:"المرحلة الثانوية",order:3}
+];
+const byOrder=(x,y)=>(x.order||0)-(y.order||0);
+const rows=s=>s.docs.map(d=>({id:d.id,...d.data()})).sort(byOrder);
+
+async function home(){
+  const m=$("#m");
+  m.innerHTML=`<h2>اختر صفك</h2><div id="g" class="muted">جارٍ التحميل…</div>`;
+  try{
+    const g=rows(await getDocs(collection(db,"grades")));
+    const el=$("#g");el.className="";
+    el.innerHTML=g.length
+      ?g.map(x=>`<button class="card" data-g="${esc(x.id)}"><b>${esc(x.title)}</b><span>${esc(x.stage||"")}</span></button>`).join("")
+      :`<p class="muted">لم تُضف الصفوف بعد.</p>`+(S.admin?`<button class="btn gold" id="seed" style="margin-top:12px">إضافة الصفوف الثلاثة</button>`:"");
+    el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>gradeView(g.find(x=>x.id===b.dataset.g)));
+    const sd=$("#seed");
+    if(sd)sd.onclick=async()=>{sd.disabled=true;try{for(const x of GRADES)await setDoc(doc(db,"grades",x.id),x);home()}catch(e){el.insertAdjacentHTML("beforeend",`<p class="err">${msg(e)}</p>`);sd.disabled=false}};
+  }catch(e){$("#g").innerHTML=`<p class="err">${msg(e)}</p>`}
+}
+
+async function gradeView(g){
+  const m=$("#m");
+  m.innerHTML=`<button class="back" id="bk">‹ الصفوف</button><h2>${esc(g.title)}</h2><div id="l" class="muted">جارٍ التحميل…</div>`;
+  $("#bk").onclick=home;
+  try{
+    const [u,l]=await Promise.all([
+      getDocs(query(collection(db,"units"),where("gradeId","==",g.id))),
+      getDocs(query(collection(db,"lessons"),where("gradeId","==",g.id)))
+    ]);
+    const units=rows(u),ls=rows(l),el=$("#l");el.className="";
+    if(!ls.length){el.innerHTML=`<p class="muted">لا توجد دروس لهذا الصف بعد. ستظهر هنا عند إضافتها.</p>`;return}
+    const known=new Set(units.map(x=>x.id));
+    const groups=[...units.map(x=>({t:x.title,id:x.id})),...(ls.some(x=>!known.has(x.unitId))?[{t:"دروس أخرى",id:null}]:[])];
+    el.innerHTML=groups.map(gr=>{
+      const items=ls.filter(x=>gr.id?x.unitId===gr.id:!known.has(x.unitId));
+      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${esc(x.title)}</button>`).join(""):"";
+    }).join("");
+    el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>lessonView(g,ls.find(x=>x.id===b.dataset.l)));
+  }catch(e){$("#l").innerHTML=`<p class="err">${msg(e)}</p>`}
+}
+
+function lessonView(g,l){
+  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2><div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div>`;
+  $("#bk").onclick=()=>gradeView(g);
+}
+
+function bank(){
+  $("#m").innerHTML=`<h2>بنك التلب</h2><p class="muted" style="margin-bottom:12px">يُفتح هذا القسم قريباً بالمحتوى التالي:</p>
+  <ul class="soon"><li>الخرائط الكنتورية</li><li>خرائط العالم</li><li>خرائط السودان</li><li>تعريفات</li><li>مسائل الزمن</li><li>محاكاة الطبيعة</li></ul>`;
+}
+
+function me(){
+  const u=S.user;
+  $("#m").innerHTML=`<h2>حسابي</h2>
+   <div class="card" style="border-inline-start-color:var(--vio2)"><b>${esc(u.displayName||"طالب")}</b><span dir="ltr">${esc(u.email)}</span>${S.admin?`<span>مشرف</span>`:""}</div>
+   <button class="btn" id="out">تسجيل الخروج</button>`;
+  $("#out").onclick=()=>signOut(auth);
+}
+</script>
+</body>
+</html>

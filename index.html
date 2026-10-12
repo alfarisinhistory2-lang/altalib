@@ -64,7 +64,7 @@ select{direction:rtl}
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,updateProfile} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,deleteDoc,serverTimestamp,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {getFirestore,collection,doc,getDoc,getDocs,setDoc,updateDoc,deleteDoc,serverTimestamp,writeBatch,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const cfg={
   apiKey:"AIzaSyDTb-31wETVCMyQ5at8hLrolbQpf17o80w",
@@ -152,6 +152,11 @@ const GRADES=[
  {id:"primary6",title:"الصف السادس الابتدائي",stage:"المرحلة الابتدائية",order:1},
  {id:"middle3",title:"الصف الثالث متوسط",stage:"المرحلة المتوسطة",order:2},
  {id:"secondary3",title:"الصف الثالث ثانوي",stage:"المرحلة الثانوية",order:3}
+];
+const SEC3=[
+ ["الوحدة الأولى: تفسير الصور الجوية",["الاستشعار عن بعد","الصور الجوية","الصور الفضائية"]],
+ ["الوحدة الثانية: الجغرافيا الاقتصادية",["الجغرافيا الاقتصادية","أنواع النشاط الاقتصادي","الإنتاج الزراعي","الأنماط الزراعية","تصنيف المحاصيل في العالم","محاصيل الحبوب الغذائية","محاصيل المواد الخام","إنتاج الغابات","الإنتاج الحيواني","الإنتاج المعدني","مصادر الطاقة","البترول","الغاز الطبيعي","الطاقة الكهربائية","الطاقة النووية","الإنتاج الصناعي","التوزيع المكاني للصناعة بالعالم","الأقاليم الصناعية في أمريكا الشمالية","الأقاليم الصناعية في أوروبا","الأقاليم الصناعية في روسيا","الصناعة في اليابان","صناعة السياحة","النقل","طرق النقل","علاقة النقل بالتجارة","التجارة العالمية","التكتلات الاقتصادية العالمية","العولمة ومظاهرها الاقتصادية"]],
+ ["الوحدة الثالثة: الإنسان والبيئة",["الإنسان والبيئة","التوازن البيئي","تلوث البيئة","تلوث الهواء","تلوث المياه العذبة","تلوث التربة","التلوث غير المادي","الاتفاقيات الدولية لحماية البيئة","استنزاف الموارد الطبيعية","الأمن الغذائي","الغابات","الحياة البرية","المياه العذبة","الأمن المائي","البحار","المعادن والوقود المعدني","الكوارث","مشكلات التنمية في الدول النامية","التنمية المستدامة","عوامل تخلف الدول النامية","المشكلات السكانية","بعض مشكلات المدن"]]
 ];
 const byOrder=(x,y)=>(x.order||0)-(y.order||0);
 const rows=s=>s.docs.map(d=>({id:d.id,...d.data()})).sort(byOrder);
@@ -251,6 +256,9 @@ function me(){
 async function adm(){
   $("#m").innerHTML=`<h2>مركز المشرف</h2>
   <label for="ag">الصف</label><select id="ag">${GRADES.map(x=>`<option value="${x.id}">${x.title}</option>`).join("")}</select>
+  <div class="box"><b>فهرس الثالث الثانوي</b>
+   <p class="muted" style="font-size:14px;margin-bottom:8px">يرفع الوحدات الثلاث ودروسها (عناوين فقط). لا يكرر ولا يمسح ما كتبته في الدروس.</p>
+   <button class="btn" id="sd">رفع فهرس الثالث الثانوي</button></div>
   <div class="box"><b>وحدة جديدة</b>
    <input id="un" class="ar" placeholder="عنوان الوحدة"><input id="uo" type="number" value="1" aria-label="الترتيب">
    <button class="btn" id="us">إضافة الوحدة</button></div>
@@ -306,6 +314,21 @@ async function adm(){
       await setDoc(doc(collection(db,"lessons")),{gradeId:gid(),unitId:u,title:t,order:+$("#lo").value||0,content:$("#lc").value,gameHtml:$("#lg").value.trim()});
       $("#lt").value=$("#lc").value=$("#lg").value="";load();
     }catch(e){err(e)}
+  };
+  $("#sd").onclick=async()=>{
+    if(!confirm("رفع فهرس الثالث الثانوي؟"))return;
+    const b=$("#sd");b.disabled=true;$("#ae").textContent="";
+    try{
+      const wb=writeBatch(db);
+      SEC3.forEach(([t,ls],i)=>{
+        const u="sec3-u"+(i+1);
+        wb.set(doc(db,"units",u),{gradeId:"secondary3",title:t,order:i+1},{merge:true});
+        ls.forEach((x,j)=>wb.set(doc(db,"lessons",u+"-l"+(j+1)),{gradeId:"secondary3",unitId:u,title:x,order:j+1},{merge:true}));
+      });
+      await wb.commit();
+      $("#ag").value="secondary3";await load();alert("تم رفع الفهرس");
+    }catch(e){err(e)}
+    b.disabled=false;
   };
   load();
 }

@@ -96,6 +96,7 @@ onAuthStateChanged(auth,async u=>{
   S.user=u;S.admin=false;S.exp=0;
   if(u){
     try{S.admin=(await getDoc(doc(db,"admins",u.uid))).exists()}catch{}
+    if(S.admin){try{await autoSeed()}catch{}}
     try{const d=await getDoc(doc(db,"subscriptions",u.uid));if(d.exists()){const v=d.data();S.exp=v.startedAt.toMillis()+v.days*864e5}}catch{}
   }
   render();
@@ -158,6 +159,19 @@ const SEC3=[
  ["الوحدة الثانية: الجغرافيا الاقتصادية",["الجغرافيا الاقتصادية","أنواع النشاط الاقتصادي","الإنتاج الزراعي","الأنماط الزراعية","تصنيف المحاصيل في العالم","محاصيل الحبوب الغذائية","محاصيل المواد الخام","إنتاج الغابات","الإنتاج الحيواني","الإنتاج المعدني","مصادر الطاقة","البترول","الغاز الطبيعي","الطاقة الكهربائية","الطاقة النووية","الإنتاج الصناعي","التوزيع المكاني للصناعة بالعالم","الأقاليم الصناعية في أمريكا الشمالية","الأقاليم الصناعية في أوروبا","الأقاليم الصناعية في روسيا","الصناعة في اليابان","صناعة السياحة","النقل","طرق النقل","علاقة النقل بالتجارة","التجارة العالمية","التكتلات الاقتصادية العالمية","العولمة ومظاهرها الاقتصادية"]],
  ["الوحدة الثالثة: الإنسان والبيئة",["الإنسان والبيئة","التوازن البيئي","تلوث البيئة","تلوث الهواء","تلوث المياه العذبة","تلوث التربة","التلوث غير المادي","الاتفاقيات الدولية لحماية البيئة","استنزاف الموارد الطبيعية","الأمن الغذائي","الغابات","الحياة البرية","المياه العذبة","الأمن المائي","البحار","المعادن والوقود المعدني","الكوارث","مشكلات التنمية في الدول النامية","التنمية المستدامة","عوامل تخلف الدول النامية","المشكلات السكانية","بعض مشكلات المدن"]]
 ];
+async function autoSeed(){
+  const wb=writeBatch(db);let n=0;
+  for(const x of GRADES){if(!(await getDoc(doc(db,"grades",x.id))).exists()){wb.set(doc(db,"grades",x.id),x);n++}}
+  if(!(await getDoc(doc(db,"units","sec3-u1"))).exists()){
+    SEC3.forEach(([t,ls],i)=>{
+      const u="sec3-u"+(i+1);
+      wb.set(doc(db,"units",u),{gradeId:"secondary3",title:t,order:i+1});
+      ls.forEach((x,j)=>wb.set(doc(db,"lessons",u+"-l"+(j+1)),{gradeId:"secondary3",unitId:u,title:x,order:j+1}));
+    });
+    n++;
+  }
+  if(n)await wb.commit();
+}
 const byOrder=(x,y)=>(x.order||0)-(y.order||0);
 const rows=s=>s.docs.map(d=>({id:d.id,...d.data()})).sort(byOrder);
 

@@ -7,7 +7,7 @@
 <title>التلب جغرافيا</title>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--ink:#1E1536;--vio:#3B2478;--vio2:#5B3FA0;--gold:#D9A62B;--paper:#FBF8F1;--line:#E4DCEE;--mut:#6E6489}
+:root{--ink:#1E1536;--vio:#3B2478;--vio2:#5B3FA0;--gold:#D9A62B;--paper:#FBF8F1;--line:#E4DCEE;--mut:#6E6489;--card:#fff;--vt:#3B2478}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%}
 body{font-family:Tajawal,system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.7;font-size:16px;padding-top:env(safe-area-inset-top,0)}
@@ -23,44 +23,44 @@ main{padding:20px 18px 110px;max-width:640px;margin:auto}
 h2{font-size:20px;margin-bottom:14px}
 .muted{color:var(--mut)}
 .err{color:#B3261E;font-size:14px;margin:8px 0}
-.card{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:right;background:#fff;border:1.5px solid var(--line);border-inline-start:6px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.card{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:right;background:var(--card);border:1.5px solid var(--line);border-inline-start:6px solid var(--gold);border-radius:14px;padding:14px 16px;margin-bottom:12px}
 .card b{font-size:18px}
 .card span{color:var(--mut);font-size:14px}
 .card:active{background:#F4EEFB}
 .btn{background:var(--vio);color:#fff;border-radius:12px;padding:12px 20px;font-weight:700;width:100%}
-.btn.gold{background:var(--gold);color:var(--ink)}
+.btn.gold{background:var(--gold);color:#1E1536}
 .btn:disabled{opacity:.6}
 .back{color:var(--vio2);font-weight:700;margin-bottom:12px;padding:6px 0}
-.unit{margin:18px 0 8px;font-weight:800;color:var(--vio)}
-.lesson{width:100%;text-align:right;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
-.body{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;line-height:1.95}
+.unit{margin:18px 0 8px;font-weight:800;color:var(--vt)}
+.lesson{width:100%;text-align:right;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.body{white-space:pre-wrap;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;line-height:1.95}
 .auth{max-width:420px;margin:auto;padding:22px 18px}
 .tabs{display:flex;gap:8px;margin:6px 0 16px}
 .tabs button{flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--line);font-weight:700}
-.tabs .on{background:var(--vio);color:#fff;border-color:var(--vio)}
+.tabs .on{background:var(--vio);color:#fff;border-color:var(--vt)}
 label{display:block;font-size:14px;font-weight:700;margin:12px 0 4px}
-input,select,textarea{width:100%;margin-bottom:8px;font-size:15px;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;direction:ltr;text-align:right}
+input,select,textarea{width:100%;margin-bottom:8px;font-size:15px;padding:12px;border:1.5px solid var(--line);border-radius:10px;background:var(--card);direction:ltr;text-align:right}
 input.ar{direction:rtl}
-nav{position:fixed;bottom:0;inset-inline:0;display:flex;background:#fff;border-top:1.5px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
+nav{position:fixed;bottom:0;inset-inline:0;display:flex;background:var(--card);border-top:1.5px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0)}
 nav button{flex:1;padding:12px 4px;font-size:14px;color:var(--mut);font-weight:500}
-nav .on{color:var(--vio);font-weight:800;box-shadow:inset 0 3px 0 var(--gold)}
+nav .on{color:var(--vt);font-weight:800;box-shadow:inset 0 3px 0 var(--gold)}
 ul.soon{list-style:none;padding:0}
-ul.soon li{padding:10px 14px;background:#fff;border:1px dashed var(--line);border-radius:10px;margin-bottom:8px}
+ul.soon li{padding:10px 14px;background:var(--card);border:1px dashed var(--line);border-radius:10px;margin-bottom:8px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
-.box{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:14px;margin:14px 0}
+.box{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:14px;margin:14px 0}
 textarea{min-height:110px;direction:rtl}
 textarea.code{direction:ltr;min-height:140px;font-family:monospace;font-size:13px}
 select{direction:rtl}
-.row{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px}
+.row{display:flex;gap:8px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px}
 .row span{flex:1}
 .row button{color:#B3261E;font-weight:700}
-.ov{position:fixed;inset:0;z-index:9;background:#fff;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
+.ov{position:fixed;inset:0;z-index:9;background:var(--card);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
 .ov iframe{flex:1;border:0;width:100%}
 .ov .btn{border-radius:0}
 .ov video{flex:1;width:100%;background:#000;min-height:0}
 .tabs{flex-wrap:wrap}
-details.u{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
-summary{font-weight:800;color:var(--vio);cursor:pointer;padding:4px 0}
+details.u{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+summary{font-weight:800;color:var(--vt);cursor:pointer;padding:4px 0}
 summary small{color:var(--mut);font-weight:500}
 .acts{display:flex;gap:8px;margin-top:8px;align-items:center}
 .acts .btn{flex:1}
@@ -69,10 +69,26 @@ summary small{color:var(--mut);font-weight:500}
 .ed{position:fixed;inset:0;z-index:9;background:var(--paper);overflow:auto;padding-top:env(safe-area-inset-top,0)}
 .edin{max-width:640px;margin:auto;padding:18px 18px 40px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:#fff;border:1.5px solid var(--line);border-inline-start:6px solid var(--gold);border-radius:12px;padding:12px}
-.stat b{display:block;font-size:26px;color:var(--vio);line-height:1.2}
+.stat{background:var(--card);border:1.5px solid var(--line);border-inline-start:6px solid var(--gold);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:26px;color:var(--vt);line-height:1.2}
 .stat span{font-size:13px;color:var(--mut)}
 #at button{flex:1 1 28%;font-size:14px;padding:9px 4px}
+input,select,textarea{color:var(--ink)}
+[data-theme=dark]{--ink:#F1EBFA;--paper:#150F26;--card:#21183A;--line:#3A2D5E;--mut:#B3A8CF;--vt:#C9B5FF;--vio2:#B9A2FF}
+.ads{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin-bottom:18px;padding-bottom:4px}
+.ad{flex:0 0 88%;scroll-snap-align:center;background:var(--vio);color:#fff;border-radius:14px;padding:14px;border-bottom:4px solid var(--gold)}
+.ad img{width:100%;max-height:140px;object-fit:cover;border-radius:10px;margin-bottom:8px}
+.ad a{display:inline-block;margin-top:6px;color:var(--gold);font-weight:700}
+.gd{background:var(--vio);color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;z-index:20}
+.gdin{padding:30px 24px;width:100%}
+.gdin .logo{font-size:30px;font-weight:800;margin-bottom:28px}
+.gdin .dot{color:var(--gold)}
+.gdin h2{font-size:22px}
+.gdin p{color:#E9DDFB;margin:10px 0 24px}
+.dots{display:flex;gap:6px;justify-content:center;margin-bottom:24px}
+.dots i{width:8px;height:8px;border-radius:50%;background:#7C65B8}
+.dots i.on{background:var(--gold);width:22px;border-radius:4px}
+.skip{color:#E9DDFB;margin-top:14px;padding:8px}
 </style>
 </head>
 <body>
@@ -93,6 +109,7 @@ const cfg={
 const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app);
 
 const $=s=>document.querySelector(s);
+try{document.documentElement.dataset.theme=localStorage.getItem("tl_theme")||""}catch{}
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ERR={
  "auth/invalid-credential":"البريد أو كلمة السر غير صحيحة.",
@@ -123,6 +140,7 @@ const header=sub=>`<header class="hd">${contour}<h1>التلب جغرافيا<sp
 
 function render(){
   const a=$("#app");
+  if(!S.gs){S.gs=1;let seen=false;try{seen=!!localStorage.getItem("tl_guide")}catch{}if(!seen)guide()}
   if(!S.user){a.innerHTML=header("سجّل دخولك لتبدأ")+authView();bindAuth();return}
   a.innerHTML=header("جغرافيا المنهج السوداني")+`<main id="m"></main>
   <nav>
@@ -133,6 +151,27 @@ function render(){
   </nav>`;
   document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
   ({home,bank,me,adm})[S.tab]();
+}
+
+const STEPS=[["مرحباً بك في التلب جغرافيا","تعلّم جغرافيا المنهج السوداني: السادس الابتدائي والثالث المتوسط والثالث الثانوي، بأسلوب واضح وممتع."],["أنشئ حسابك","اضغط «حساب جديد» وسجّل ببريدك وكلمة سر، ثم ادخل في أي وقت."],["اختر صفك وادرس","تجد الوحدات والدروس مرتبة حسب المنهج، وكل الدروس مجانية."],["ألعاب وفيديو","الألعاب والاختبارات والفيديو تُفتح بكود اشتراك تحصل عليه من الأستاذ."]];
+function guide(){
+  let i=0;const o=document.createElement("div");o.className="ed gd";document.body.appendChild(o);
+  const done=()=>{try{localStorage.setItem("tl_guide","1")}catch{}o.remove()};
+  (function draw(){
+    const [t,d]=STEPS[i],last=i===STEPS.length-1;
+    o.innerHTML=`<div class="edin gdin"><div class="logo">التلب جغرافيا<span class="dot">.</span></div><h2>${t}</h2><p>${d}</p><div class="dots">${STEPS.map((_,k)=>`<i${k===i?' class="on"':""}></i>`).join("")}</div><button class="btn gold" id="gn">${last?"ابدأ رحلتك":"التالي"}</button>${last?"":`<button class="skip" id="gs">تخطي</button>`}</div>`;
+    o.querySelector("#gn").onclick=()=>last?done():(i++,draw());
+    const sk=o.querySelector("#gs");if(sk)sk.onclick=done;
+  })();
+}
+async function showAds(){
+  try{
+    const a=rows(await getDocs(collection(db,"ads"))).filter(x=>x.active!==false);
+    const el=$("#ads");if(!el||!a.length)return;
+    const ok=u=>/^https:\/\//i.test(u||"");
+    el.className="ads";
+    el.innerHTML=a.map(x=>`<div class="ad">${ok(x.imageUrl)?`<img src="${esc(x.imageUrl)}" alt="">`:""}<p>${esc(x.text)}</p>${ok(x.link)?`<a href="${esc(x.link)}" target="_blank" rel="noopener">فتح الرابط</a>`:""}</div>`).join("");
+  }catch{}
 }
 
 function authView(){
@@ -193,7 +232,8 @@ const rows=s=>s.docs.map(d=>({id:d.id,...d.data()})).sort(byOrder);
 
 async function home(){
   const m=$("#m");
-  m.innerHTML=`<h2>اختر صفك</h2><div id="g" class="muted">جارٍ التحميل…</div>`;
+  m.innerHTML=`<div id="ads"></div><h2>اختر صفك</h2><div id="g" class="muted">جارٍ التحميل…</div>`;
+  showAds();
   try{
     const g=rows(await getDocs(collection(db,"grades")));
     const el=$("#g");el.className="";
@@ -285,8 +325,10 @@ function me(){
   $("#m").innerHTML=`<h2>حسابي</h2>
    <div class="card" style="border-inline-start-color:var(--vio2)"><b>${esc(u.displayName||"طالب")}</b><span dir="ltr">${esc(u.email)}</span>${S.admin?`<span>مشرف</span>`:`<span>${active()?"اشتراك فعّال حتى "+new Date(S.exp).toLocaleDateString("ar"):"بدون اشتراك"}</span>`}</div>
    ${S.admin?"":`<button class="btn gold" id="rd" style="margin-bottom:10px">تفعيل كود اشتراك</button>`}
+   <button class="btn gray" id="dk" style="margin:0 0 10px">${document.documentElement.dataset.theme==="dark"?"الوضع النهاري":"الوضع الليلي"}</button>
    <button class="btn" id="out">تسجيل الخروج</button>`;
   const rd=$("#rd");if(rd)rd.onclick=()=>subView(null);
+  $("#dk").onclick=()=>{const d=document.documentElement.dataset.theme==="dark"?"":"dark";document.documentElement.dataset.theme=d;try{localStorage.setItem("tl_theme",d)}catch{}me()};
   $("#out").onclick=()=>signOut(auth);
 }
 async function admDash(err){
@@ -300,6 +342,32 @@ async function admDash(err){
     $("#dd").className="";
     $("#dd").innerHTML=`<div class="stats">${st.map(([t,n])=>`<div class="stat"><b>${n}</b><span>${t}</span></div>`).join("")}</div>`;
   }catch(e){$("#dd").textContent="";err(e)}
+}
+
+async function admAds(err){
+  $("#ab").innerHTML=`<button class="btn" id="na" style="margin-bottom:12px">+ إعلان جديد</button><div id="adl" class="muted">جارٍ التحميل…</div>`;
+  async function load(){
+    try{
+      const a=rows(await getDocs(collection(db,"ads")));
+      const el=$("#adl");el.className="";
+      el.innerHTML=a.map(x=>`<div class="row"><span>${esc(x.text)}</span><button data-d="${esc(x.id)}">حذف</button></div>`).join("")||`<p class="muted">لا توجد إعلانات.</p>`;
+      el.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!confirm("حذف الإعلان؟"))return;try{await deleteDoc(doc(db,"ads",b.dataset.d));load()}catch(e){err(e)}});
+    }catch(e){$("#adl").textContent="";err(e)}
+  }
+  $("#na").onclick=()=>{
+    const o=panel(`<h2>إعلان جديد</h2><label for="at1">نص الإعلان</label><textarea id="at1" style="min-height:80px"></textarea><label for="ai">رابط صورة (https) - اختياري</label><input id="ai"><label for="al">رابط عند الضغط (https) - اختياري</label><input id="al2"><p class="err" id="ee" role="alert"></p><button class="btn gold" id="sv">نشر</button><button class="btn gray" id="cn">إلغاء</button>`);
+    const q=z=>o.querySelector(z);
+    q("#cn").onclick=()=>o.remove();
+    q("#sv").onclick=async()=>{
+      const t=q("#at1").value.trim(),im=q("#ai").value.trim(),lk=q("#al2").value.trim();
+      if(!t){q("#ee").textContent="اكتب نص الإعلان.";return}
+      if((im&&!/^https:\/\//i.test(im))||(lk&&!/^https:\/\//i.test(lk))){q("#ee").textContent="الروابط يجب أن تبدأ بـ https.";return}
+      q("#sv").disabled=true;
+      try{await setDoc(doc(collection(db,"ads")),{text:t,imageUrl:im,link:lk,active:true,order:Date.now()});o.remove();load()}
+      catch(e){q("#ee").textContent=msg(e);q("#sv").disabled=false}
+    };
+  };
+  load();
 }
 
 async function admSubs(err){
@@ -332,13 +400,13 @@ function panel(html){const o=document.createElement("div");o.className="ed";o.in
 
 async function adm(){
   if(!S.at)S.at="c";
-  const tabs=[["d","المتابعة"],["c","المحتوى"],["s","الاشتراكات"],["k","الأكواد"],["i","الفهرس"]];
+  const tabs=[["d","المتابعة"],["c","المحتوى"],["s","الاشتراكات"],["a","الإعلانات"],["k","الأكواد"],["i","الفهرس"]];
   $("#m").innerHTML=`<h2>مركز المشرف</h2>
   <div class="tabs" id="at">${tabs.map(([k,t])=>`<button data-k="${k}" class="${S.at===k?"on":""}">${t}</button>`).join("")}</div>
   <p class="err" id="ae" role="alert"></p><div id="ab"></div>`;
   $("#at").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.at=b.dataset.k;adm()});
   const err=e=>{$("#ae").textContent=msg(e)};
-  ({d:admDash,c:admContent,s:admSubs,k:admCodes,i:admIndex})[S.at](err);
+  ({d:admDash,c:admContent,s:admSubs,a:admAds,k:admCodes,i:admIndex})[S.at](err);
 }
 
 async function admContent(err){

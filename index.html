@@ -68,6 +68,11 @@ summary small{color:var(--mut);font-weight:500}
 .btn.gray{background:#6E6489;margin-top:8px}
 .ed{position:fixed;inset:0;z-index:9;background:var(--paper);overflow:auto;padding-top:env(safe-area-inset-top,0)}
 .edin{max-width:640px;margin:auto;padding:18px 18px 40px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#fff;border:1.5px solid var(--line);border-inline-start:6px solid var(--gold);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:26px;color:var(--vio);line-height:1.2}
+.stat span{font-size:13px;color:var(--mut)}
+#at button{flex:1 1 28%;font-size:14px;padding:9px 4px}
 </style>
 </head>
 <body>
@@ -108,7 +113,7 @@ onAuthStateChanged(auth,async u=>{
   if(u){
     try{S.admin=(await getDoc(doc(db,"admins",u.uid))).exists()}catch{}
     if(S.admin){try{await autoSeed()}catch{}}
-    try{const d=await getDoc(doc(db,"subscriptions",u.uid));if(d.exists()){const v=d.data();S.exp=v.startedAt.toMillis()+v.days*864e5}}catch{}
+    try{const d=await getDoc(doc(db,"subscriptions",u.uid));if(d.exists()){const v=d.data();S.exp=v.suspended?0:v.startedAt.toMillis()+v.days*864e5}}catch{}
   }
   render();
 });
@@ -284,17 +289,56 @@ function me(){
   const rd=$("#rd");if(rd)rd.onclick=()=>subView(null);
   $("#out").onclick=()=>signOut(auth);
 }
+async function admDash(err){
+  $("#ab").innerHTML=`<div id="dd" class="muted">جارٍ التحميل…</div>`;
+  try{
+    const g=n=>getDocs(collection(db,n));
+    const [u,s,l,c]=await Promise.all([g("users"),g("subscriptions"),g("lessons"),g("codes")]);
+    const now=Date.now(),ld=l.docs.map(d=>d.data()),cd=c.docs.map(d=>d.data());
+    const act=s.docs.filter(d=>{const v=d.data();return !v.suspended&&v.startedAt&&v.startedAt.toMillis()+v.days*864e5>now}).length;
+    const st=[["الطلاب المسجلون",u.size],["اشتراكات نشطة",act],["إجمالي الاشتراكات",s.size],["إجمالي الدروس",l.size],["دروس بلعبة",ld.filter(x=>x.gameHtml).length],["دروس بفيديو",ld.filter(x=>x.videoUrl).length],["أكواد متاحة",cd.filter(x=>!x.used).length],["أكواد مستخدمة",cd.filter(x=>x.used).length]];
+    $("#dd").className="";
+    $("#dd").innerHTML=`<div class="stats">${st.map(([t,n])=>`<div class="stat"><b>${n}</b><span>${t}</span></div>`).join("")}</div>`;
+  }catch(e){$("#dd").textContent="";err(e)}
+}
+
+async function admSubs(err){
+  $("#ab").innerHTML=`<input id="sq" class="ar" placeholder="ابحث بالاسم أو البريد"><select id="sf" aria-label="الحالة"><option value="">كل الحالات</option><option value="a">نشط</option><option value="e">منتهي</option><option value="s">موقوف</option></select><div id="sl" class="muted">جارٍ التحميل…</div>`;
+  let list=[];
+  const state=x=>x.sus?"s":x.exp>Date.now()?"a":"e",label={a:"نشط",e:"منتهي",s:"موقوف"};
+  async function load(){
+    try{
+      const [s,u]=await Promise.all([getDocs(collection(db,"subscriptions")),getDocs(collection(db,"users"))]);
+      const us={};u.docs.forEach(d=>us[d.id]=d.data());
+      list=s.docs.map(d=>{const v=d.data(),st=v.startedAt?v.startedAt.toMillis():0,w=us[d.id]||{};return {id:d.id,name:w.name||"",email:w.email||"",days:v.days,st,exp:st+v.days*864e5,sus:!!v.suspended}});
+      draw();
+    }catch(e){$("#sl").textContent="";err(e)}
+  }
+  function draw(){
+    const q=$("#sq").value.trim().toLowerCase(),f=$("#sf").value,c={a:0,e:0,s:0};
+    list.forEach(x=>c[state(x)]++);
+    const r=list.filter(x=>(!f||state(x)===f)&&(x.name+" "+x.email).toLowerCase().includes(q));
+    const el=$("#sl");el.className="";
+    el.innerHTML=`<p class="muted" style="margin:8px 0">الإجمالي ${list.length} • نشط ${c.a} • منتهي ${c.e} • موقوف ${c.s}</p>`+(r.map(x=>`<div class="box"><b>${esc(x.name||"بدون اسم")}</b><div class="muted" dir="ltr" style="font-size:13px">${esc(x.email)}</div><div class="muted" style="font-size:14px">${label[state(x)]} • ينتهي ${new Date(x.exp).toLocaleDateString("ar")}</div><div class="acts"><button class="btn" data-x="${esc(x.id)}">+30 يوماً</button><button class="btn gold" data-s="${esc(x.id)}">${x.sus?"إعادة التفعيل":"إيقاف"}</button></div></div>`).join("")||`<p class="muted">لا توجد نتائج.</p>`);
+    el.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>upd(b.dataset.x,x=>({days:Math.ceil((Math.max(x.exp,Date.now())-x.st)/864e5)+30})));
+    el.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>upd(b.dataset.s,x=>({suspended:!x.sus})));
+  }
+  async function upd(id,f){const x=list.find(z=>z.id===id);try{await updateDoc(doc(db,"subscriptions",id),f(x));load()}catch(e){err(e)}}
+  $("#sq").oninput=draw;$("#sf").onchange=draw;
+  load();
+}
+
 function panel(html){const o=document.createElement("div");o.className="ed";o.innerHTML=`<div class="edin">${html}</div>`;document.body.appendChild(o);return o}
 
 async function adm(){
   if(!S.at)S.at="c";
-  const tabs=[["c","المحتوى"],["k","الأكواد"],["i","الفهرس"]];
+  const tabs=[["d","المتابعة"],["c","المحتوى"],["s","الاشتراكات"],["k","الأكواد"],["i","الفهرس"]];
   $("#m").innerHTML=`<h2>مركز المشرف</h2>
   <div class="tabs" id="at">${tabs.map(([k,t])=>`<button data-k="${k}" class="${S.at===k?"on":""}">${t}</button>`).join("")}</div>
   <p class="err" id="ae" role="alert"></p><div id="ab"></div>`;
   $("#at").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.at=b.dataset.k;adm()});
   const err=e=>{$("#ae").textContent=msg(e)};
-  ({c:admContent,k:admCodes,i:admIndex})[S.at](err);
+  ({d:admDash,c:admContent,s:admSubs,k:admCodes,i:admIndex})[S.at](err);
 }
 
 async function admContent(err){

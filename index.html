@@ -89,6 +89,7 @@ input,select,textarea{color:var(--ink)}
 .dots i{width:8px;height:8px;border-radius:50%;background:#7C65B8}
 .dots i.on{background:var(--gold);width:22px;border-radius:4px}
 .skip{color:#E9DDFB;margin-top:14px;padding:8px}
+.bimg{width:100%;border-radius:12px;margin-bottom:12px;border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -307,17 +308,45 @@ function overlay(inner){
 }
 function lessonView(g,l){
   const lk=active()?"":"🔒 ";
-  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>${l.videoUrl?`<button class="btn" id="pv" style="margin-bottom:10px">${lk}شاهد الفيديو</button>`:""}${l.gameHtml?`<button class="btn gold" id="pg" style="margin-bottom:14px">${lk}ابدأ اللعبة / الاختبار</button>`:""}<div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div>`;
+  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>${l.videoUrl?`<button class="btn" id="pv" style="margin-bottom:10px">${lk}شاهد الفيديو</button>`:""}${l.gameHtml?`<button class="btn gold" id="pg" style="margin-bottom:14px">${lk}ابدأ اللعبة / الاختبار</button>`:""}<div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div><div id="bb"></div>`;
   $("#bk").onclick=()=>gradeView(g);
   const gate=f=>()=>active()?f():subView(g,()=>lessonView(g,l));
   const pv=$("#pv"),pg=$("#pg");
   if(pv)pv.onclick=gate(()=>overlay(embed(l.videoUrl)));
   if(pg)pg.onclick=gate(()=>{overlay(`<iframe sandbox="allow-scripts" title="اللعبة"></iframe>`).querySelector("iframe").srcdoc=l.gameHtml});
+  getDocs(query(collection(db,"bank"),where("lessonId","==",l.id))).then(r=>{
+    const a=rows(r),el=$("#bb");if(!a.length||!el)return;
+    el.innerHTML=`<h2 style="margin:18px 0 10px">من بنك التلب</h2>`+a.map(x=>`<button class="lesson" data-i="${esc(x.id)}">${esc(btName(x.type))}: ${esc(x.title)}</button>`).join("");
+    el.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{const x=a.find(z=>z.id===b.dataset.i);bankItem(x,x.type)});
+  }).catch(()=>{});
 }
 
+const BT=[["contour","الخرائط الكنتورية"],["world","خرائط العالم"],["sudan","خرائط السودان"],["defs","تعريفات"],["time","مسائل الزمن"],["nature","محاكاة الطبيعة"]];
+const btName=k=>(BT.find(x=>x[0]===k)||[0,k])[1];
 function bank(){
-  $("#m").innerHTML=`<h2>بنك التلب</h2><p class="muted" style="margin-bottom:12px">يُفتح هذا القسم قريباً بالمحتوى التالي:</p>
-  <ul class="soon"><li>الخرائط الكنتورية</li><li>خرائط العالم</li><li>خرائط السودان</li><li>تعريفات</li><li>مسائل الزمن</li><li>محاكاة الطبيعة</li></ul>`;
+  $("#m").innerHTML=`<h2>بنك التلب</h2>${BT.map(([k,t])=>`<button class="card" data-b="${k}"><b>${t}</b></button>`).join("")}`;
+  document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>bankList(b.dataset.b));
+}
+async function bankList(type){
+  $("#m").innerHTML=`<button class="back" id="bk">‹ بنك التلب</button><h2>${btName(type)}</h2><select id="bg" aria-label="الصف"><option value="">كل الصفوف</option>${GRADES.map(x=>`<option value="${x.id}">${x.title}</option>`).join("")}</select><div id="bl" class="muted">جارٍ التحميل…</div>`;
+  $("#bk").onclick=bank;
+  let items=[];
+  const draw=()=>{
+    const g=$("#bg").value,r=items.filter(x=>!g||!x.gradeId||x.gradeId===g),el=$("#bl");
+    el.className="";
+    el.innerHTML=r.map(x=>`<button class="lesson" data-i="${esc(x.id)}">${esc(x.title)}${x.html?" 🎮":""}</button>`).join("")||`<p class="muted">لا يوجد محتوى هنا بعد.</p>`;
+    el.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>bankItem(items.find(x=>x.id===b.dataset.i),type));
+  };
+  $("#bg").onchange=draw;
+  try{items=rows(await getDocs(query(collection(db,"bank"),where("type","==",type))));draw()}
+  catch(e){$("#bl").innerHTML=`<p class="err">${msg(e)}</p>`}
+}
+function bankItem(it,type){
+  const ok=u=>/^https:\/\//i.test(u||""),lk=active()?"":"🔒 ";
+  $("#m").innerHTML=`<button class="back" id="bk">‹ ${btName(type)}</button><h2>${esc(it.title)}</h2>${ok(it.imageUrl)?`<img class="bimg" src="${esc(it.imageUrl)}" alt="${esc(it.title)}">`:""}${it.html?`<button class="btn gold" id="pb" style="margin-bottom:14px">${lk}ابدأ التفاعل</button>`:""}${it.content?`<div class="body">${esc(it.content)}</div>`:""}`;
+  $("#bk").onclick=()=>bankList(type);
+  const pb=$("#pb");
+  if(pb)pb.onclick=()=>active()?(overlay(`<iframe sandbox="allow-scripts" title="${esc(it.title)}"></iframe>`).querySelector("iframe").srcdoc=it.html):subView(null,()=>bankItem(it,type));
 }
 
 function me(){
@@ -370,6 +399,60 @@ async function admAds(err){
   load();
 }
 
+async function admBank(err){
+  $("#ab").innerHTML=`<select id="bt" aria-label="النوع">${BT.map(([k,t])=>`<option value="${k}"${k===(S.bt||"contour")?" selected":""}>${t}</option>`).join("")}</select><button class="btn" id="nb" style="margin-bottom:12px">+ إضافة</button><div id="bl2" class="muted">جارٍ التحميل…</div>`;
+  let items=[];
+  async function load(){
+    S.bt=$("#bt").value;
+    try{
+      items=rows(await getDocs(query(collection(db,"bank"),where("type","==",S.bt))));
+      const el=$("#bl2");el.className="";
+      el.innerHTML=items.map(x=>`<div class="row"><span>${esc(x.title)}${x.html?" 🎮":""}${x.lessonId?" 🔗":""}</span><button data-e="${esc(x.id)}" style="color:var(--vio2)">تعديل</button><button data-d="${esc(x.id)}">حذف</button></div>`).join("")||`<p class="muted">لا يوجد محتوى لهذا النوع.</p>`;
+      el.querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{if(!confirm("حذف العنصر؟"))return;try{await deleteDoc(doc(db,"bank",b.dataset.d));load()}catch(e){err(e)}});
+      el.querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>bankEd(items.find(x=>x.id===b.dataset.e),load));
+    }catch(e){$("#bl2").textContent="";err(e)}
+  }
+  $("#bt").onchange=load;
+  $("#nb").onclick=()=>bankEd({type:$("#bt").value,order:items.length+1},load);
+  load();
+}
+
+function bankEd(it,done){
+  const o=panel(`<h2>${it.id?"تعديل":"إضافة"}: ${btName(it.type)}</h2>
+  <label for="b1">العنوان</label><input id="b1" class="ar">
+  <label for="b2">الصف</label><select id="b2"><option value="">كل الصفوف</option>${GRADES.map(x=>`<option value="${x.id}">${x.title}</option>`).join("")}</select>
+  <label for="b3">ربط بدرس (اختياري)</label><select id="b3"><option value="">بدون ربط</option></select>
+  <label for="b4">الترتيب</label><input id="b4" type="number">
+  <label for="b5">النص أو الشرح</label><textarea id="b5"></textarea>
+  <label for="b6">رابط صورة (https) - اختياري</label><input id="b6">
+  <label for="b7">كود تفاعلي (HTML) - اختياري</label><textarea id="b7" class="code"></textarea>
+  <p class="err" id="ee" role="alert"></p><button class="btn gold" id="sv">حفظ</button><button class="btn gray" id="cn">إلغاء</button>`);
+  const q=z=>o.querySelector(z);
+  q("#b1").value=it.title||"";q("#b2").value=it.gradeId||"";q("#b4").value=it.order||1;q("#b5").value=it.content||"";q("#b6").value=it.imageUrl||"";q("#b7").value=it.html||"";
+  async function lessons(sel){
+    const g=q("#b2").value;q("#b3").innerHTML=`<option value="">بدون ربط</option>`;
+    if(!g)return;
+    try{
+      const ls=rows(await getDocs(query(collection(db,"lessons"),where("gradeId","==",g))));
+      q("#b3").innerHTML+=ls.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join("");
+      q("#b3").value=sel||"";
+    }catch{}
+  }
+  q("#b2").onchange=()=>lessons("");
+  lessons(it.lessonId);
+  q("#cn").onclick=()=>o.remove();
+  q("#sv").onclick=async()=>{
+    const t=q("#b1").value.trim(),im=q("#b6").value.trim();
+    if(!t){q("#ee").textContent="اكتب العنوان.";return}
+    if(im&&!/^https:\/\//i.test(im)){q("#ee").textContent="رابط الصورة يجب أن يبدأ بـ https.";return}
+    q("#sv").disabled=true;
+    try{
+      await setDoc(it.id?doc(db,"bank",it.id):doc(collection(db,"bank")),{type:it.type,title:t,gradeId:q("#b2").value,lessonId:q("#b3").value,order:+q("#b4").value||0,content:q("#b5").value,imageUrl:im,html:q("#b7").value.trim()},{merge:true});
+      o.remove();done();
+    }catch(e){q("#ee").textContent=msg(e);q("#sv").disabled=false}
+  };
+}
+
 async function admSubs(err){
   $("#ab").innerHTML=`<input id="sq" class="ar" placeholder="ابحث بالاسم أو البريد"><select id="sf" aria-label="الحالة"><option value="">كل الحالات</option><option value="a">نشط</option><option value="e">منتهي</option><option value="s">موقوف</option></select><div id="sl" class="muted">جارٍ التحميل…</div>`;
   let list=[];
@@ -400,13 +483,13 @@ function panel(html){const o=document.createElement("div");o.className="ed";o.in
 
 async function adm(){
   if(!S.at)S.at="c";
-  const tabs=[["d","المتابعة"],["c","المحتوى"],["s","الاشتراكات"],["a","الإعلانات"],["k","الأكواد"],["i","الفهرس"]];
+  const tabs=[["d","المتابعة"],["c","المحتوى"],["s","الاشتراكات"],["a","الإعلانات"],["k","الأكواد"],["b","بنك التلب"],["i","الفهرس"]];
   $("#m").innerHTML=`<h2>مركز المشرف</h2>
   <div class="tabs" id="at">${tabs.map(([k,t])=>`<button data-k="${k}" class="${S.at===k?"on":""}">${t}</button>`).join("")}</div>
   <p class="err" id="ae" role="alert"></p><div id="ab"></div>`;
   $("#at").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.at=b.dataset.k;adm()});
   const err=e=>{$("#ae").textContent=msg(e)};
-  ({d:admDash,c:admContent,s:admSubs,a:admAds,k:admCodes,i:admIndex})[S.at](err);
+  ({d:admDash,c:admContent,s:admSubs,a:admAds,k:admCodes,b:admBank,i:admIndex})[S.at](err);
 }
 
 async function admContent(err){

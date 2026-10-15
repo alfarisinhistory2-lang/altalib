@@ -57,6 +57,7 @@ select{direction:rtl}
 .ov{position:fixed;inset:0;z-index:9;background:#fff;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0)}
 .ov iframe{flex:1;border:0;width:100%}
 .ov .btn{border-radius:0}
+.ov video{flex:1;width:100%;background:#000;min-height:0}
 </style>
 </head>
 <body>
@@ -202,26 +203,21 @@ async function gradeView(g){
     const units=rows(u),ls=rows(l),el=$("#l");el.className="";
     if(!ls.length){el.innerHTML=`<p class="muted">لا توجد دروس لهذا الصف بعد. ستظهر هنا عند إضافتها.</p>`;return}
     const known=new Set(units.map(x=>x.id));
-    const uo={};units.forEach(x=>uo[x.id]=x.order||0);
-    const free=[...ls].sort((a,b)=>(uo[a.unitId]||0)-(uo[b.unitId]||0)||(a.order||0)-(b.order||0))[0].id;
     const groups=[...units.map(x=>({t:x.title,id:x.id})),...(ls.some(x=>!known.has(x.unitId))?[{t:"دروس أخرى",id:null}]:[])];
     el.innerHTML=groups.map(gr=>{
       const items=ls.filter(x=>gr.id?x.unitId===gr.id:!known.has(x.unitId));
-      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${x.id===free||active()?"":"🔒 "}${esc(x.title)}</button>`).join(""):"";
+      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${esc(x.title)}</button>`).join(""):"";
     }).join("");
-    el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{
-      const id=b.dataset.l;
-      if(id===free||active())lessonView(g,ls.find(x=>x.id===id));else subView(g);
-    });
+    el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>lessonView(g,ls.find(x=>x.id===b.dataset.l)));
   }catch(e){$("#l").innerHTML=`<p class="err">${msg(e)}</p>`}
 }
 
-function subView(g){
+function subView(g,ret){
   $("#m").innerHTML=`<button class="back" id="bk">‹ رجوع</button><h2>الاشتراك</h2>
-  <p class="muted" style="margin-bottom:12px">الدرس الأول من كل صف مجاني. لفتح بقية الدروس أدخل كود التفعيل الذي يعطيك إياه الأستاذ.</p>
+  <p class="muted" style="margin-bottom:12px">الدروس مجانية. الألعاب والاختبارات ومكتبة الفيديو تحتاج اشتراكاً، أدخل كود التفعيل الذي يعطيك إياه الأستاذ.</p>
   <label for="cd">كود التفعيل</label><input id="cd" autocapitalize="characters" autocomplete="off">
   <p class="err" id="ce" role="alert"></p><button class="btn gold" id="ac">تفعيل</button>`;
-  const back=()=>g?gradeView(g):(S.tab="me",render());
+  const back=()=>ret?ret():g?gradeView(g):(S.tab="me",render());
   $("#bk").onclick=back;
   $("#ac").onclick=async()=>{
     const c=$("#cd").value.trim().toUpperCase(),b=$("#ac");
@@ -240,17 +236,28 @@ function subView(g){
   };
 }
 
+function embed(u){
+  if(!/^https:\/\//i.test(u))return `<p style="padding:20px">رابط الفيديو غير صالح.</p>`;
+  const m=u.match(/(?:youtu\.be\/|v=|embed\/)([\w-]{11})/);
+  if(m)return `<iframe src="https://www.youtube.com/embed/${m[1]}" allow="fullscreen" allowfullscreen title="الفيديو"></iframe>`;
+  if(/\.(mp4|webm)(\?|$)/i.test(u))return `<video src="${esc(u)}" controls playsinline></video>`;
+  return `<iframe src="${esc(u)}" allow="fullscreen" allowfullscreen title="الفيديو"></iframe>`;
+}
+function overlay(inner){
+  const o=document.createElement("div");o.className="ov";
+  o.innerHTML=`<button class="btn" id="cl">إغلاق</button>${inner}`;
+  document.body.appendChild(o);
+  o.querySelector("#cl").onclick=()=>o.remove();
+  return o;
+}
 function lessonView(g,l){
-  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>${l.gameHtml?`<button class="btn gold" id="pg" style="margin-bottom:14px">ابدأ اللعبة / الاختبار</button>`:""}<div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div>`;
+  const lk=active()?"":"🔒 ";
+  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>${l.videoUrl?`<button class="btn" id="pv" style="margin-bottom:10px">${lk}شاهد الفيديو</button>`:""}${l.gameHtml?`<button class="btn gold" id="pg" style="margin-bottom:14px">${lk}ابدأ اللعبة / الاختبار</button>`:""}<div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div>`;
   $("#bk").onclick=()=>gradeView(g);
-  const pg=$("#pg");
-  if(pg)pg.onclick=()=>{
-    const o=document.createElement("div");o.className="ov";
-    o.innerHTML=`<button class="btn" id="cl">إغلاق</button><iframe sandbox="allow-scripts" title="اللعبة"></iframe>`;
-    document.body.appendChild(o);
-    o.querySelector("iframe").srcdoc=l.gameHtml;
-    o.querySelector("#cl").onclick=()=>o.remove();
-  };
+  const gate=f=>()=>active()?f():subView(g,()=>lessonView(g,l));
+  const pv=$("#pv"),pg=$("#pg");
+  if(pv)pv.onclick=gate(()=>overlay(embed(l.videoUrl)));
+  if(pg)pg.onclick=gate(()=>{overlay(`<iframe sandbox="allow-scripts" title="اللعبة"></iframe>`).querySelector("iframe").srcdoc=l.gameHtml});
 }
 
 function bank(){
@@ -281,6 +288,7 @@ async function adm(){
    <input id="lt" class="ar" placeholder="عنوان الدرس"><input id="lo" type="number" value="1" aria-label="الترتيب">
    <textarea id="lc" placeholder="شرح الدرس"></textarea>
    <textarea id="lg" class="code" placeholder="كود اللعبة أو الاختبار (ملف HTML كامل) - اختياري"></textarea>
+   <input id="lv" placeholder="رابط الفيديو (https) - اختياري">
    <button class="btn gold" id="ls">إضافة الدرس</button></div>
   <div class="box"><b>أكواد التفعيل</b>
    <label for="cdays">مدة الاشتراك</label><select id="cdays"><option value="30">30 يوماً</option><option value="90">90 يوماً</option><option value="365">سنة</option></select>
@@ -293,7 +301,7 @@ async function adm(){
       const us=rows(u),ls=rows(l);
       $("#au").innerHTML=us.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join("");
       $("#al").className="";
-      $("#al").innerHTML=us.map(x=>`<div class="unit">${esc(x.title)} <button data-d="units/${esc(x.id)}" style="color:#B3261E">حذف</button></div>`+ls.filter(y=>y.unitId===x.id).map(y=>`<div class="row"><span>${esc(y.title)}${y.gameHtml?" 🎮":""}</span><button data-d="lessons/${esc(y.id)}">حذف</button></div>`).join("")).join("")||`<p class="muted">لا توجد وحدات لهذا الصف بعد.</p>`;
+      $("#al").innerHTML=us.map(x=>`<div class="unit">${esc(x.title)} <button data-d="units/${esc(x.id)}" style="color:#B3261E">حذف</button></div>`+ls.filter(y=>y.unitId===x.id).map(y=>`<div class="row"><span>${esc(y.title)}${y.gameHtml?" 🎮":""}${y.videoUrl?" 🎬":""}</span><button data-d="lessons/${esc(y.id)}">حذف</button></div>`).join("")).join("")||`<p class="muted">لا توجد وحدات لهذا الصف بعد.</p>`;
       $("#al").querySelectorAll("[data-d]").forEach(b=>b.onclick=async()=>{
         if(!confirm("هل تريد الحذف؟"))return;
         const [c,i]=b.dataset.d.split("/");
@@ -325,8 +333,8 @@ async function adm(){
     if(!t||!u){$("#ae").textContent="اختر الوحدة واكتب عنوان الدرس.";return}
     $("#ae").textContent="";
     try{
-      await setDoc(doc(collection(db,"lessons")),{gradeId:gid(),unitId:u,title:t,order:+$("#lo").value||0,content:$("#lc").value,gameHtml:$("#lg").value.trim()});
-      $("#lt").value=$("#lc").value=$("#lg").value="";load();
+      await setDoc(doc(collection(db,"lessons")),{gradeId:gid(),unitId:u,title:t,order:+$("#lo").value||0,content:$("#lc").value,gameHtml:$("#lg").value.trim(),videoUrl:$("#lv").value.trim()});
+      $("#lt").value=$("#lc").value=$("#lg").value=$("#lv").value="";load();
     }catch(e){err(e)}
   };
   $("#sd").onclick=async()=>{

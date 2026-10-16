@@ -90,6 +90,12 @@ input,select,textarea{color:var(--ink)}
 .dots i.on{background:var(--gold);width:22px;border-radius:4px}
 .skip{color:#E9DDFB;margin-top:14px;padding:8px}
 .bimg{width:100%;border-radius:12px;margin-bottom:12px;border:1px solid var(--line)}
+.act{background:var(--vio);color:#fff;border-radius:16px;padding:18px;text-align:center;margin-bottom:14px;border-bottom:4px solid var(--gold)}
+.act .ai{font-size:34px}
+.act p{color:#E9DDFB;margin:4px 0 12px;font-size:14px}
+.sum{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:6px}
+.sum summary{font-weight:800;color:var(--vt)}
+.sum .body{border:0;padding:8px 0 0;background:transparent}
 </style>
 </head>
 <body>
@@ -262,7 +268,7 @@ async function gradeView(g){
     const groups=[...units.map(x=>({t:x.title,id:x.id})),...(ls.some(x=>!known.has(x.unitId))?[{t:"دروس أخرى",id:null}]:[])];
     el.innerHTML=groups.map(gr=>{
       const items=ls.filter(x=>gr.id?x.unitId===gr.id:!known.has(x.unitId));
-      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${esc(x.title)}</button>`).join(""):"";
+      return items.length?`<div class="unit">${esc(gr.t)}</div>`+items.map(x=>`<button class="lesson" data-l="${esc(x.id)}">${DONE().includes(x.id)?"✓ ":""}${esc(x.title)}${x.gameHtml?" 🎮":""}</button>`).join(""):"";
     }).join("");
     el.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>lessonView(g,ls.find(x=>x.id===b.dataset.l)));
   }catch(e){$("#l").innerHTML=`<p class="err">${msg(e)}</p>`}
@@ -299,24 +305,30 @@ function embed(u){
   if(/\.(mp4|webm)(\?|$)/i.test(u))return `<video src="${esc(u)}" controls playsinline></video>`;
   return `<iframe src="${esc(u)}" allow="fullscreen" allowfullscreen title="الفيديو"></iframe>`;
 }
-function overlay(inner){
+function overlay(inner,f){
   const o=document.createElement("div");o.className="ov";
   o.innerHTML=`<button class="btn" id="cl">إغلاق</button>${inner}`;
   document.body.appendChild(o);
-  o.querySelector("#cl").onclick=()=>o.remove();
+  o.querySelector("#cl").onclick=()=>{o.remove();if(f)f()};
   return o;
 }
+const DONE=()=>{try{return JSON.parse(localStorage.getItem("tl_done")||"[]")}catch{return[]}};
+const markDone=id=>{try{const d=DONE();if(!d.includes(id)){d.push(id);localStorage.setItem("tl_done",JSON.stringify(d))}}catch{}};
 function lessonView(g,l){
-  const lk=active()?"":"🔒 ";
-  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>${l.videoUrl?`<button class="btn" id="pv" style="margin-bottom:10px">${lk}شاهد الفيديو</button>`:""}${l.gameHtml?`<button class="btn gold" id="pg" style="margin-bottom:14px">${lk}ابدأ اللعبة / الاختبار</button>`:""}<div class="body">${esc(l.content||"لم يُضف محتوى هذا الدرس بعد.")}</div><div id="bb"></div>`;
+  const lk=active()?"":"🔒 ",dn=DONE().includes(l.id);
+  $("#m").innerHTML=`<button class="back" id="bk">‹ ${esc(g.title)}</button><h2>${esc(l.title)}</h2>
+  <div class="act">${l.gameHtml?`<div class="ai">🎮</div><b>ابدأ بالنشاط التفاعلي</b><p>جرّب بنفسك أولاً ثم اقرأ الملخص.${dn?" ✓ أنجزته من قبل":""}</p><button class="btn gold" id="pg">${lk}ابدأ النشاط</button>`:`<div class="ai">🧭</div><b>النشاط التفاعلي</b><p>لم يُضف نشاط لهذا الدرس بعد.</p>`}</div>
+  ${l.videoUrl?`<button class="btn" id="pv" style="margin-bottom:12px">${lk}شاهد الفيديو</button>`:""}
+  <div id="bb"></div>
+  <details class="sum" open><summary>الشرح المختصر</summary><div class="body">${esc(l.content||"لم يُضف الشرح بعد.")}</div></details>`;
   $("#bk").onclick=()=>gradeView(g);
   const gate=f=>()=>active()?f():subView(g,()=>lessonView(g,l));
   const pv=$("#pv"),pg=$("#pg");
   if(pv)pv.onclick=gate(()=>overlay(embed(l.videoUrl)));
-  if(pg)pg.onclick=gate(()=>{overlay(`<iframe sandbox="allow-scripts" title="اللعبة"></iframe>`).querySelector("iframe").srcdoc=l.gameHtml});
+  if(pg)pg.onclick=gate(()=>{overlay(`<iframe sandbox="allow-scripts" title="النشاط"></iframe>`,()=>{markDone(l.id);lessonView(g,l)}).querySelector("iframe").srcdoc=l.gameHtml});
   getDocs(query(collection(db,"bank"),where("lessonId","==",l.id))).then(r=>{
     const a=rows(r),el=$("#bb");if(!a.length||!el)return;
-    el.innerHTML=`<h2 style="margin:18px 0 10px">من بنك التلب</h2>`+a.map(x=>`<button class="lesson" data-i="${esc(x.id)}">${esc(btName(x.type))}: ${esc(x.title)}</button>`).join("");
+    el.innerHTML=`<h2 style="margin:6px 0 10px">مختبرات وخرائط من بنك التلب</h2>`+a.map(x=>`<button class="lesson" data-i="${esc(x.id)}">${esc(btName(x.type))}: ${esc(x.title)}</button>`).join("");
     el.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{const x=a.find(z=>z.id===b.dataset.i);bankItem(x,x.type)});
   }).catch(()=>{});
 }
